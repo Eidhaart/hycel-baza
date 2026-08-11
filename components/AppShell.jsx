@@ -96,8 +96,6 @@ export default function AppShell({ session, initialAnimals, gminas, exportPendin
   const [view, setView] = useState("table");
   useEffect(() => {
     setDark(document.documentElement.classList.contains("dark"));
-    const v = localStorage.getItem("view");
-    if (v === "grid" || v === "list" || v === "table") setView(v);
   }, []);
 
   const [query, setQuery] = useState("");
@@ -110,13 +108,20 @@ export default function AppShell({ session, initialAnimals, gminas, exportPendin
   const [printMenu, setPrintMenu] = useState(false);
 
   /* ---- years, exactly like the sheet tabs in Excel ---- */
+  // Only consider the animals actually in view (an admin filtering to one
+  // gmina should see just that gmina's years — empty years disappear).
+  const scoped = useMemo(
+    () => (isAdmin && fGmina ? animals.filter((a) => a.gmina_id === fGmina) : animals),
+    [animals, isAdmin, fGmina]
+  );
   const years = useMemo(() => {
     const s = new Set();
-    animals.forEach((a) => { if (a.data) s.add(a.data.slice(0, 4)); });
-    s.add(String(new Date().getFullYear()));
-    return [...s].sort((a, b) => b.localeCompare(a));
-  }, [animals]);
-  const hasUndated = useMemo(() => animals.some((a) => !a.data), [animals]);
+    scoped.forEach((a) => { if (a.data) s.add(a.data.slice(0, 4)); });
+    if (isAdmin) s.add(String(new Date().getFullYear())); // admin can always add to the current year
+    const arr = [...s].sort((a, b) => b.localeCompare(a));
+    return arr.length ? arr : [String(new Date().getFullYear())];
+  }, [scoped, isAdmin]);
+  const hasUndated = useMemo(() => scoped.some((a) => !a.data), [scoped]);
 
   const [year, setYear] = useState(null);
   useEffect(() => {
@@ -133,7 +138,7 @@ export default function AppShell({ session, initialAnimals, gminas, exportPendin
     localStorage.setItem("theme", next ? "dark" : "light");
     setDark(next);
   };
-  const changeView = (v) => { setView(v); localStorage.setItem("view", v); };
+  const changeView = (v) => setView(v);
   const refresh = () => router.refresh();
   const doLogout = async () => { await logout(); refresh(); };
 
@@ -321,6 +326,7 @@ export default function AppShell({ session, initialAnimals, gminas, exportPendin
         <SettingsPanel gminas={gminas}
           exportPending={exportPending}
           lastExportSentAt={lastExportSentAt}
+          selectedGmina={fGmina}
           onClose={() => setModal(null)}
           onSaved={() => { setModal(null); refresh(); }}
           onAcknowledged={() => { setModal(null); refresh(); }}
@@ -362,7 +368,7 @@ function SheetTable({ rows, year, gminaLabel, showGmina, onRow, onImage }) {
       <table className="w-full min-w-[900px] border-collapse bg-white dark:bg-stone-900">
         <thead className="sticky top-0 z-10">
           <tr>
-            <th colSpan={showGmina ? 10 : 9}
+            <th colSpan={showGmina ? 12 : 11}
               className="border border-stone-300 dark:border-stone-600 bg-[#cfe3d4] dark:bg-teal-950 px-3 py-2.5 text-base font-semibold text-stone-800 dark:text-teal-100">
               {title}
             </th>
@@ -374,10 +380,12 @@ function SheetTable({ rows, year, gminaLabel, showGmina, onRow, onImage }) {
             {showGmina && <th className={cx(TH, "w-28")}>gmina</th>}
             <th className={cx(TH, "w-24")}>zgłaszający</th>
             <th className={cx(TH, "w-56")}>opis zwierzęcia</th>
-            <th className={cx(TH, "w-32")}>chip</th>
+            <th className={cx(TH, "whitespace-nowrap")}>chip</th>
             <th className={cx(TH, "w-36")}>miejsce dostarczenia</th>
             <th className={cx(TH, "w-44")}>dalszy los zwierzęcia</th>
+            <th className={cx(TH, "w-32")}>status</th>
             <th className={cx(TH, "w-52")}>zdjęcie</th>
+            <th className={cx(TH, "w-64")}>notatka</th>
           </tr>
         </thead>
         <tbody>
@@ -390,15 +398,19 @@ function SheetTable({ rows, year, gminaLabel, showGmina, onRow, onImage }) {
               {showGmina && <td className={cx(TD, "text-center")}>{a.gmina_name || ""}</td>}
               <td className={cx(TD, "text-center")}>{a.zglaszajacy || ""}</td>
               <td className={cx(TD, "text-center")}>{a.opis || ""}</td>
-              <td className={cx(TD, "text-center break-all")}>{a.chip || "-"}</td>
+              <td className={cx(TD, "text-center whitespace-nowrap")}>{a.chip || "-"}</td>
               <td className={cx(TD, "text-center")}>{a.dostarczenie || ""}</td>
               <td className={cx(TD, "text-center")}>{a.los || ""}</td>
+              <td className={cx(TD, "text-center whitespace-nowrap")}><StatusPill id={a.status} /></td>
               <td className={cx(TD, "text-center p-1")}>
                 {a.zdjecie
                   ? <img src={a.zdjecie} alt=""
                       onClick={(e) => { e.stopPropagation(); onImage(a.zdjecie); }}
                       className="h-32 w-48 object-contain mx-auto rounded bg-stone-50 dark:bg-stone-800 cursor-zoom-in" />
                   : <span className="text-stone-300 dark:text-stone-600">—</span>}
+              </td>
+              <td className={cx(TD, "text-left align-top whitespace-pre-wrap break-words text-sm")}>
+                {a.notatka || <span className="text-stone-300 dark:text-stone-600">—</span>}
               </td>
             </tr>
           ))}
@@ -538,6 +550,17 @@ function Detail({ a, isAdmin, onClose, onEdit, onDelete }) {
             <Info icon={<ArrowRight size={15} />} label="Miejsce dostarczenia" value={a.dostarczenie} />
             <Info icon={<ClipboardList size={15} />} label="Dalszy los zwierzęcia" value={a.los} />
           </div>
+          {a.notatka && (
+            <div className="mt-4 rounded-xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-3">
+              <div className="mb-1 flex items-center gap-2">
+                <ClipboardList size={14} className="text-amber-600 dark:text-amber-400" />
+                <span className="text-xs font-medium text-amber-700 dark:text-amber-300">
+                  Notatka{isAdmin && (a.notatka_publiczna ? " — widoczna dla gminy" : " — tylko administrator")}
+                </span>
+              </div>
+              <p className="whitespace-pre-wrap text-sm text-stone-700 dark:text-stone-200">{a.notatka}</p>
+            </div>
+          )}
           {isAdmin && (
             <div className="mt-6 flex gap-2">
               <button onClick={onEdit} className={cx("flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 py-2.5 text-sm font-medium transition", SUBTLE_HOVER)}>
@@ -586,6 +609,7 @@ function EntryForm({ gminas, initial, onCancel, onSaved }) {
     initial || {
       data: "", gmina_id: gminas[0]?.id || "", miejsce: "", zglaszajacy: "UG",
       opis: "", chip: "", dostarczenie: "", los: "", status: "przetrzymany",
+      notatka: "", notatka_publiczna: false,
     }
   );
   const [photo, setPhoto] = useState(
@@ -641,6 +665,8 @@ function EntryForm({ gminas, initial, onCancel, onSaved }) {
     const fd = new FormData();
     ["data", "miejsce", "zglaszajacy", "opis", "chip", "dostarczenie", "los", "status"]
       .forEach((k) => fd.append(k, f[k] || ""));
+    fd.append("notatka", f.notatka || "");
+    fd.append("notatka_publiczna", f.notatka_publiczna ? "1" : "");
     fd.append("gmina_id", gminaId);
     fd.append("gmina_name", gminaName);
     if (photo?.blob) fd.append("photo", photo.blob, "photo.jpg");
@@ -738,6 +764,18 @@ function EntryForm({ gminas, initial, onCancel, onSaved }) {
               placeholder="np. Schronisko Milanówek 23.07.2026" className={cx(INPUT, "resize-none")} />
           </Field>
 
+          <Field label="Notatka administratora">
+            <textarea rows={2} value={f.notatka || ""} onChange={(e) => set("notatka", e.target.value)}
+              placeholder="Notatka wewnętrzna — domyślnie widoczna tylko dla administratora"
+              className={cx(INPUT, "resize-none")} />
+            <label className="mt-2 flex items-center gap-2 text-sm text-stone-600 dark:text-stone-300 cursor-pointer select-none">
+              <input type="checkbox" checked={!!f.notatka_publiczna}
+                onChange={(e) => set("notatka_publiczna", e.target.checked)}
+                className="h-4 w-4 rounded border-stone-300 text-teal-600 focus:ring-teal-500" />
+              Widoczna również dla gminy
+            </label>
+          </Field>
+
           {err && <p className="text-sm text-red-500">{err}</p>}
         </div>
 
@@ -752,11 +790,14 @@ function EntryForm({ gminas, initial, onCancel, onSaved }) {
   );
 }
 
-function SettingsPanel({ gminas, exportPending, lastExportSentAt, onClose, onSaved, onAcknowledged, onWipe }) {
+function SettingsPanel({ gminas, exportPending, lastExportSentAt, selectedGmina, onClose, onSaved, onAcknowledged, onWipe }) {
   const [list, setList] = useState(gminas.map((g) => ({ ...g })));
   const [busy, setBusy] = useState(false);
   const [acking, setAcking] = useState(false);
   const [msg, setMsg] = useState("");
+  const [exportGmina, setExportGmina] = useState(selectedGmina || "");
+  const exportHref = (fmt) =>
+    `/api/export?format=${fmt}${exportGmina ? `&gmina=${exportGmina}` : ""}`;
   const upd = (id, k, v) => setList((p) => p.map((g) => (g.id === id ? { ...g, [k]: v } : g)));
   const add = () => setList((p) => [...p, { id: uid(), name: "", code: "" }]);
   const rm = (id) => setList((p) => p.filter((g) => g.id !== id));
@@ -812,15 +853,22 @@ function SettingsPanel({ gminas, exportPending, lastExportSentAt, onClose, onSav
                 {sentLabel ? `Ostatnia kopia wysłana e-mailem: ${sentLabel}.` : "Kopia zapasowa wysyłana jest e-mailem co 5 dni."}
               </p>
             )}
-            <div className="mt-3 flex gap-2">
-              <a href="/api/export?format=xlsx"
-                className={cx("inline-flex items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 px-3 py-2 text-sm font-medium transition", SUBTLE_HOVER)}>
-                <Download size={15} /> Excel
-              </a>
-              <a href="/api/export?format=csv"
-                className={cx("inline-flex items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 px-3 py-2 text-sm font-medium transition", SUBTLE_HOVER)}>
-                <Download size={15} /> CSV
-              </a>
+            <div className="mt-3">
+              <select value={exportGmina} onChange={(e) => setExportGmina(e.target.value)}
+                className={cx(INPUT, "appearance-none")}>
+                <option value="">Wszystkie gminy</option>
+                {gminas.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+              </select>
+              <div className="mt-2 flex gap-2">
+                <a href={exportHref("xlsx")}
+                  className={cx("inline-flex items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 px-3 py-2 text-sm font-medium transition", SUBTLE_HOVER)}>
+                  <Download size={15} /> Excel
+                </a>
+                <a href={exportHref("csv")}
+                  className={cx("inline-flex items-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 px-3 py-2 text-sm font-medium transition", SUBTLE_HOVER)}>
+                  <Download size={15} /> CSV
+                </a>
+              </div>
             </div>
           </div>
 

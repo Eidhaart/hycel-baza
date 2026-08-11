@@ -29,6 +29,15 @@ export default async function Page() {
     if (aErr) throw new Error(aErr.message);
     if (gErr) throw new Error(gErr.message);
 
+    // The admin note is private by default. Never send it to a gmina session
+    // unless it was explicitly marked visible to the gmina.
+    let animalsForClient = animals || [];
+    if (session.role === "gmina") {
+      animalsForClient = animalsForClient.map((a) =>
+        a.notatka_publiczna ? a : { ...a, notatka: null }
+      );
+    }
+
     // Backup notification state (admin only). Missing app_state table is
     // non-fatal — the app still works, just without the backup badge.
     let exportPending = false;
@@ -52,7 +61,7 @@ export default async function Page() {
     return (
       <AppShell
         session={session}
-        initialAnimals={animals || []}
+        initialAnimals={animalsForClient}
         gminas={gminas || []}
         exportPending={exportPending}
         lastExportSentAt={lastExportSentAt}
