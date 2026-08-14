@@ -31,6 +31,17 @@ const NO_DATE = "__brak__";
 /* ----------------------------- helpers ------------------------------- */
 
 const cx = (...a) => a.filter(Boolean).join(" ");
+// Thumbnails live under a /thumbs/ prefix in the same bucket. If a thumb is
+// missing (not generated yet), the <img> onError swaps back to the full photo,
+// so images never break — they just cost a bit more until thumbs are built.
+const thumbUrl = (url) =>
+  url ? url.replace("/animal-photos/", "/animal-photos/thumbs/") : url;
+const swapToFull = (e, full) => {
+  if (!e.currentTarget.dataset.full && full) {
+    e.currentTarget.dataset.full = "1";
+    e.currentTarget.src = full;
+  }
+};
 const uid = () =>
   crypto?.randomUUID?.() ||
   "id-" + Date.now() + "-" + Math.random().toString(36).slice(2);
@@ -404,7 +415,8 @@ function SheetTable({ rows, year, gminaLabel, showGmina, onRow, onImage }) {
               <td className={cx(TD, "text-center whitespace-nowrap")}><StatusPill id={a.status} /></td>
               <td className={cx(TD, "text-center p-1")}>
                 {a.zdjecie
-                  ? <img src={a.zdjecie} alt=""
+                  ? <img src={thumbUrl(a.zdjecie)} alt="" loading="lazy" decoding="async"
+                      onError={(e) => swapToFull(e, a.zdjecie)}
                       onClick={(e) => { e.stopPropagation(); onImage(a.zdjecie); }}
                       className="h-32 w-48 object-contain mx-auto rounded bg-stone-50 dark:bg-stone-800 cursor-zoom-in" />
                   : <span className="text-stone-300 dark:text-stone-600">—</span>}
@@ -445,7 +457,8 @@ function StatusPill({ id, size = "sm" }) {
 }
 
 function Photo({ src, className, iconSize = 28 }) {
-  if (src) return <img src={src} alt="" className={cx("object-cover", className)} />;
+  if (src) return <img src={thumbUrl(src)} alt="" loading="lazy" decoding="async"
+    onError={(e) => swapToFull(e, src)} className={cx("object-cover", className)} />;
   return (
     <div className={cx("grid place-items-center bg-stone-100 dark:bg-stone-800 text-stone-300 dark:text-stone-600", className)}>
       <ImageOff size={iconSize} />
@@ -627,7 +640,8 @@ function EntryForm({ gminas, initial, onCancel, onSaved }) {
     setBusy(true);
     try {
       const { blob, url } = await compressImage(file);
-      setPhoto({ blob, preview: url, existing: false });
+      const { blob: thumbBlob } = await compressImage(file, 240, 0.6);
+      setPhoto({ blob, thumbBlob, preview: url, existing: false });
     } catch { setErr("Nie udało się przetworzyć zdjęcia."); }
     finally { setBusy(false); }
   };
@@ -670,6 +684,7 @@ function EntryForm({ gminas, initial, onCancel, onSaved }) {
     fd.append("gmina_id", gminaId);
     fd.append("gmina_name", gminaName);
     if (photo?.blob) fd.append("photo", photo.blob, "photo.jpg");
+    if (photo?.thumbBlob) fd.append("photo_thumb", photo.thumbBlob, "thumb.jpg");
     if (initial) {
       fd.append("id", initial.id);
       fd.append("existing_photo_path", initial.photo_path || "");
