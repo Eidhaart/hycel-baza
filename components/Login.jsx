@@ -70,7 +70,7 @@ export default function Login() {
               value={code}
               onChange={(e) => { setCode(e.target.value); setErr(null); }}
               onKeyDown={(e) => e.key === "Enter" && submit()}
-              placeholder="np. LEG1"
+              placeholder="Kod..."
               className="mt-1.5 w-full rounded-xl border border-stone-300 dark:border-stone-700 bg-white dark:bg-stone-900 px-4 py-3 text-center text-lg tracking-[0.3em] uppercase outline-none focus:ring-2 focus:ring-teal-500 transition"
             />
             {err && <p className="mt-2 text-sm text-red-500">{err}</p>}
@@ -84,7 +84,7 @@ export default function Login() {
           </div>
 
           <p className="mt-6 text-center text-xs leading-relaxed text-stone-400 dark:text-stone-500">
-            Każda gmina ma własny kod i widzi tylko swoje zwierzęta.
+            Każda gmina ma własny kod i widzi tylko swoje zwierzęta. W razie pytań proszę skontaktować się z administratorem 
           </p>
         </div>
       </div>
