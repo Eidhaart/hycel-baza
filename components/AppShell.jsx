@@ -18,7 +18,7 @@ import {
 export const STATUSES = [
   { id: "schronisko",    label: "W schronisku",           c: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200" },
   { id: "zwrocony",      label: "Zwrócony właścicielowi",  c: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200" },
-  { id: "rehabilitacja", label: "Rehabilitacja",           c: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200" },
+  { id: "rehabilitacja", label: "Lecznica Weterynaryjna",           c: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200" },
   { id: "przekazany",    label: "Przekazany pod opiekę",   c: "bg-violet-100 text-violet-800 dark:bg-violet-900 dark:text-violet-200" },
   { id: "przetrzymany",  label: "Czasowo przetrzymany",    c: "bg-stone-200 text-stone-700 dark:bg-stone-700 dark:text-stone-200" },
   { id: "adoptowany",    label: "Adoptowany",              c: "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200" },
