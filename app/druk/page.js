@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 const STATUS_LABELS = {
   schronisko: "W schronisku",
   zwrocony: "Zwrócony właścicielowi",
-  rehabilitacja: "Rehabilitacja",
+  rehabilitacja: "Lecznica Weterynaryjna",
   przekazany: "Przekazany pod opiekę",
   przetrzymany: "Czasowo przetrzymany",
   adoptowany: "Adoptowany",

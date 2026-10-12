@@ -574,8 +574,14 @@ function Detail({ a, isAdmin, onClose, onEdit, onDelete }) {
               <p className="whitespace-pre-wrap text-sm text-stone-700 dark:text-stone-200">{a.notatka}</p>
             </div>
           )}
+          <div className="mt-6">
+            <a href={`/druk/wpis?id=${a.id}`} target="_blank" rel="noopener"
+              className={cx("w-full inline-flex items-center justify-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 py-2.5 text-sm font-medium transition", SUBTLE_HOVER)}>
+              <Printer size={15} /> Drukuj / PDF
+            </a>
+          </div>
           {isAdmin && (
-            <div className="mt-6 flex gap-2">
+            <div className="mt-2 flex gap-2">
               <button onClick={onEdit} className={cx("flex-1 inline-flex items-center justify-center gap-2 rounded-xl border border-stone-200 dark:border-stone-800 py-2.5 text-sm font-medium transition", SUBTLE_HOVER)}>
                 <Pencil size={15} /> Edytuj
               </button>
