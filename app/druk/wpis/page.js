@@ -133,9 +133,23 @@ const css = `
     font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   }
 
-  .photo { position: relative; width: 100%; height: 300px; background: #f5f5f4; }
-  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .photo--empty { display: flex; align-items: center; justify-content: center; }
+  /* Show the whole photo, scaled to fit — never cropped. */
+  .photo {
+    position: relative;
+    width: 100%;
+    background: #f5f5f4;
+    display: flex;
+    justify-content: center;
+  }
+  .photo img {
+    display: block;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 420px;
+    object-fit: contain;
+  }
+  .photo--empty { height: 300px; align-items: center; }
 
   .status {
     position: absolute;
@@ -182,6 +196,11 @@ const css = `
       box-shadow: none;
     }
     .status, .note { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .photo img { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .photo { break-inside: avoid; page-break-inside: avoid; }
+    .photo img {
+      max-height: 150mm;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
 `;
