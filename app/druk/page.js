@@ -256,11 +256,15 @@ function css(withPhotos) {
     flex: 0 0 ${withPhotos ? "170px" : "0"};
     width: 170px;
   }
+  /* Show the whole photo, scaled to fit the column — never cropped. */
   .entry-photo img {
     display: block;
-    width: 100%;
-    height: 130px;
-    object-fit: cover;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 200px;
+    margin-left: auto;
+    object-fit: contain;
     border: 0.75pt solid #c9c9c4;
     border-radius: 3px;
   }
