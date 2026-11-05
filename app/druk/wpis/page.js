@@ -133,9 +133,25 @@ const css = `
     font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   }
 
-  .photo { position: relative; width: 100%; height: 300px; background: #f5f5f4; }
-  .photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .photo--empty { display: flex; align-items: center; justify-content: center; }
+  .photo {
+    position: relative;
+    width: 100%;
+    background: #f5f5f4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+  }
+  /* Fit the whole photo inside the box — never crop, never distort.
+     A wide photo hits max-width first, a tall phone photo max-height. */
+  .photo img {
+    max-width: 100%;
+    max-height: 150mm;
+    width: auto;
+    height: auto;
+    display: block;
+  }
+  .photo--empty { min-height: 90px; }
 
   .status {
     position: absolute;
